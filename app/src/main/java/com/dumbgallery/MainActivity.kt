@@ -349,7 +349,15 @@ class AlbumsAdapter(private val ctx: Context, private val onOpen: (Album) -> Uni
         val a = albums[position]
         holder.name.text = a.name
         holder.count.text = numbers.format(a.items.size)
-        ThumbLoader.load(holder.img, a.items[0], big = true)
+        if (a.items.isEmpty()) {
+            // Empty Google Photos album: plain accent tile invites adding some.
+            ThumbLoader.cancel(holder.img)
+            holder.img.setBitmapFast(null)
+            holder.img.setBackgroundColor(Metro.accent)
+        } else {
+            holder.img.setBackgroundColor(Metro.EMPTY)
+            ThumbLoader.load(holder.img, a.items[0], big = true)
+        }
     }
 
     override fun onViewRecycled(holder: VH) = ThumbLoader.cancel(holder.img)

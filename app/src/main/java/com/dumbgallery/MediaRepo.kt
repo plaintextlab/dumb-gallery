@@ -46,6 +46,7 @@ object MediaRepo {
         private set
     var loaded = false
         private set
+    private var cloud: List<MediaItem> = emptyList()
 
     private val listeners = ArrayList<() -> Unit>()
     private val worker = Executors.newSingleThreadExecutor()
@@ -84,14 +85,41 @@ object MediaRepo {
         running = true
         worker.execute {
             val list = try { query(c) } catch (e: Exception) { emptyList() }
-            val grouped = group(list)
+            val cl = try { CloudStore.read(c) } catch (e: Exception) { emptyList() }
+            val grouped = group(list, cl)
             main.post {
                 items = list
+                cloud = cl
                 albums = grouped
                 loaded = true
                 running = false
                 listeners.toList().forEach { it() }
                 if (again) { again = false; refresh(c) }
+            }
+        }
+    }
+
+    /** Add photo-picker results to the Google Photos album. Main thread. */
+    fun addCloud(ctx: Context, uris: List<Uri>) {
+        if (uris.isEmpty()) return
+        val c = ctx.applicationContext
+        CloudStore.persist(c, uris)
+        updateCloud { CloudStore.add(c, uris) }
+    }
+
+    fun removeCloud(ctx: Context, item: MediaItem) {
+        val c = ctx.applicationContext
+        updateCloud { CloudStore.remove(c, item) }
+    }
+
+    private fun updateCloud(op: () -> List<MediaItem>) {
+        worker.execute {
+            val cl = try { op() } catch (e: Exception) { return@execute }
+            main.post {
+                // Worker is serial, so this post always lands after any earlier refresh's post.
+                cloud = cl
+                albums = group(items, cl)
+                listeners.toList().forEach { it() }
             }
         }
     }
@@ -157,11 +185,15 @@ object MediaRepo {
         return out
     }
 
-    private fun group(list: List<MediaItem>): List<Album> {
+    private fun group(list: List<MediaItem>, cloud: List<MediaItem>): List<Album> {
         val map = LinkedHashMap<Long, ArrayList<MediaItem>>()
         for (m in list) map.getOrPut(m.bucketId) { ArrayList() }.add(m)
-        // Most recent first, camera roll pinned to the top.
-        return map.map { (id, l) -> Album(id, l[0].bucket, l) }
+        // Most recent first, camera roll pinned to the top, Google Photos right after it.
+        val out = map.map { (id, l) -> Album(id, l[0].bucket, l) }
             .sortedBy { if (it.name.equals("camera", ignoreCase = true)) 0 else 1 }
+            .toMutableList()
+        val at = if (out.firstOrNull()?.name.equals("camera", ignoreCase = true)) 1 else 0
+        out.add(at, Album(CloudStore.ID, CloudStore.NAME, cloud))
+        return out
     }
 }

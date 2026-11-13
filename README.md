@@ -5,6 +5,7 @@ A Metro-style Android gallery, heavily inspired by the Windows Phone Photos app.
 - **Pivot hub**: `collection` (every photo and video, grouped by month) and `albums`. Swipe between them; the big lowercase headers slide along like a real pivot.
 - **Jump list**: tap a month header to get a year/month tile grid and jump anywhere.
 - **Albums**: square cover tiles with name and count. Camera is always first.
+- **Google Photos album**: tap **add** to pick photos and videos with the system photo picker, which includes your Google Photos cloud library when Google Photos is set as the cloud media app (picker menu → **Browse**). Picked items keep a persistent read grant and stay in the album; **delete** on them only removes them from the album. Google's API no longer lets third-party apps browse a whole Google Photos library, so picking is the only route. Photos Google Photos keeps on the device already appear in the collection.
 - **Viewer**: swipe through photos, pinch or double-tap to zoom, tap to hide the chrome. App bar has share, info and delete; `•••` adds open with, set as and slideshow.
 - **Metro touches**: black theme, 20 WP8 accent colours (`•••` → accent colour), turnstile page transitions, tilt on press, an app bar that slides up to show its labels.
 

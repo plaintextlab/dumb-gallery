@@ -4,6 +4,8 @@ import android.content.ComponentCallbacks2
 import android.content.ContentResolver
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.ImageDecoder
+import android.media.MediaMetadataRetriever
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
@@ -28,6 +30,7 @@ import java.util.concurrent.atomic.AtomicLong
 object ThumbLoader {
     private val main = Handler(Looper.getMainLooper())
     private lateinit var resolver: ContentResolver
+    private lateinit var app: Context
     private var small = 256
     private var large = 512
 
@@ -50,6 +53,7 @@ object ThumbLoader {
 
     fun init(ctx: Context) {
         resolver = ctx.contentResolver
+        app = ctx.applicationContext
         val dm = ctx.resources.displayMetrics
         val w = minOf(dm.widthPixels, dm.heightPixels)
         small = (w / 4).coerceIn(128, 384)
@@ -127,6 +131,24 @@ object ThumbLoader {
         if (this is TileImageView) setBitmapFast(b) else setImageBitmap(b)
     }
 
+    /** For picked items whose provider can't serve thumbnails: decode a small version ourselves. */
+    private fun decodeDirect(item: MediaItem, s: Int): Bitmap? = try {
+        if (item.isVideo) {
+            MediaMetadataRetriever().use { r ->
+                r.setDataSource(app, item.uri)
+                r.getScaledFrameAtTime(-1, MediaMetadataRetriever.OPTION_CLOSEST_SYNC, s, s)
+            }
+        } else {
+            ImageDecoder.decodeBitmap(ImageDecoder.createSource(resolver, item.uri)) { dec, info, _ ->
+                val sample = minOf(info.size.width, info.size.height) / s
+                if (sample > 1) dec.setTargetSampleSize(sample)
+                dec.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+            }
+        }
+    } catch (e: Exception) {
+        null
+    }
+
     private class Task(val key: Long, val item: MediaItem, val big: Boolean, @Volatile var priority: Int) :
         Runnable, Comparable<Task> {
         @Volatile var view: ImageView? = null
@@ -146,7 +168,7 @@ object ThumbLoader {
                 resolver.loadThumbnail(item.uri, Size(s, s), null)
             } catch (e: Exception) {
                 null
-            }
+            } ?: if (item.bucketId == CloudStore.ID) decodeDirect(item, s) else null
             if (bmp != null) cache.put(key, bmp)
             inflight.remove(key, this)
             main.post { deliver(bmp) }

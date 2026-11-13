@@ -14,7 +14,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 
-enum class Glyph { CAMERA, PLAY, SHARE, INFO, DELETE }
+enum class Glyph { CAMERA, PLAY, SHARE, INFO, DELETE, ADD }
 
 /** Round, outlined app bar icon drawn in code (no icon assets). Fills with accent while pressed. */
 class CircleButton(ctx: Context, private val glyph: Glyph, private val sizeDp: Int = 46) : View(ctx) {
@@ -86,6 +86,10 @@ class CircleButton(ctx: Context, private val glyph: Glyph, private val sizeDp: I
                 c.drawCircle(ax, ay, 1.5f * u, fill)
                 c.drawCircle(bx, by, 1.5f * u, fill)
                 c.drawCircle(dx, dy, 1.5f * u, fill)
+            }
+            Glyph.ADD -> {
+                c.drawLine(cx - 4.5f * u, cy, cx + 4.5f * u, cy, line)
+                c.drawLine(cx, cy - 4.5f * u, cx, cy + 4.5f * u, line)
             }
             Glyph.INFO -> {
                 c.drawCircle(cx, cy - 3.6f * u, 0.9f * u, fill)

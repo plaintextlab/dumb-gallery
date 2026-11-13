@@ -291,6 +291,19 @@ class ViewerActivity : MetroActivity() {
 
     private fun delete() {
         val m = current ?: return
+        if (m.bucketId == CloudStore.ID) {
+            // Picked from Google Photos: we can only forget it, not delete the original.
+            AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
+                .setTitle("remove")
+                .setMessage("remove from this album? it stays in google photos.")
+                .setPositiveButton("remove") { _, _ ->
+                    MediaRepo.removeCloud(this, m)
+                    onDeleted(m)
+                }
+                .setNegativeButton("cancel", null)
+                .show()
+            return
+        }
         pendingDelete = m
         if (Build.VERSION.SDK_INT >= 30) {
             // System shows its own confirmation.
