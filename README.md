@@ -30,3 +30,22 @@ adb install app/build/outputs/apk/release/app-release.apk
 ```
 
 The release build is signed with the debug key so it installs directly. Minimum Android version is 10 (API 29).
+
+## Releases
+
+Pushing a version tag builds the APK on GitHub Actions and publishes a release with the APK attached:
+
+```bash
+git tag v1.1 && git push origin v1.1
+```
+
+You can also start a release from the **Actions** tab (**release** → **Run workflow**). The version name comes from the tag and the version code from the workflow run number.
+
+To sign releases with your own key, add these repository secrets. Without them each release is debug-signed with a different key, so a new release won't install over the old one.
+
+| Secret | Value |
+|---|---|
+| `SIGNING_KEYSTORE_BASE64` | `base64 -w0 release.jks` |
+| `SIGNING_STORE_PASSWORD` | keystore password |
+| `SIGNING_KEY_ALIAS` | key alias |
+| `SIGNING_KEY_PASSWORD` | key password |
