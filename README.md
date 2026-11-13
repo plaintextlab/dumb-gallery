@@ -24,7 +24,6 @@ A Metro-style Android gallery, heavily inspired by the Windows Phone Photos app.
 You need JDK 17 and the Android SDK (platform 35). Android Studio has both.
 
 ```bash
-gradle wrapper --gradle-version 8.11.1   # once, if you're not using Android Studio
 ./gradlew assembleRelease
 adb install app/build/outputs/apk/release/app-release.apk
 ```
